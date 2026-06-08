@@ -27,6 +27,18 @@ jobs:
                 echo "============================"
                 (cd "$dir" && make V=1 -j3 "$(basename "$dir").elf" 2>&1 && riscv64-unknown-elf-size "$(basename "$dir").elf")
             '
+
+      - name: Collect CH32V003 binaries
+        run: |
+          chmod +x .github/collect_ch32v003_binaries.sh
+          .github/collect_ch32v003_binaries.sh ch32v003-artifacts make examples*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ch32v003-binaries-linux
+          path: ch32v003-artifacts/make/
+          if-no-files-found: error
+
   build-all-windows:
     runs-on: windows-latest
     steps:
@@ -40,6 +52,19 @@ jobs:
         run: |
           cd build_scripts
           build_all.cmd
+
+      - name: Collect CH32V003 binaries
+        shell: bash
+        run: |
+          chmod +x .github/collect_ch32v003_binaries.sh
+          .github/collect_ch32v003_binaries.sh ch32v003-artifacts make examples
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ch32v003-binaries-windows
+          path: ch32v003-artifacts/make/
+          if-no-files-found: error
+
   # Build using PlatformIO
   pio-build:
     strategy:
@@ -62,3 +87,15 @@ jobs:
       run: pip install --upgrade platformio
     - name: Build PlatformIO Project
       run: pio run -v
+
+    - name: Collect CH32V003 binaries
+      shell: bash
+      run: |
+        chmod +x .github/collect_ch32v003_binaries.sh
+        .github/collect_ch32v003_binaries.sh ch32v003-artifacts pio
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ch32v003-binaries-pio-${{ matrix.os }}
+        path: ch32v003-artifacts/pio/
+        if-no-files-found: error
