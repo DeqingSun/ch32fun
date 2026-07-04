@@ -1,6 +1,12 @@
 name: Build CI
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build-all:
@@ -38,6 +44,30 @@ jobs:
           name: ch32v003-binaries-linux
           path: ch32v003-artifacts/make/
           if-no-files-found: error
+
+  hardware-test-ch32v003:
+    # Only run on trusted events (push or manual dispatch) to prevent
+    # untrusted PR code from executing on the self-hosted runner.
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: build-all
+    runs-on: self-hosted
+    steps:
+      - name: Download firmware artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ch32v003-binaries-linux
+          path: ch32v003-firmware
+
+      - name: Checkout test tool repo
+        uses: actions/checkout@v4
+        with:
+          repository: DeqingSun/CH32V003-Automatic-Test-Tool
+          path: CH32V003-Automatic-Test-Tool
+
+      - name: Run hardware tests
+        run: |
+          python3 CH32V003-Automatic-Test-Tool/autoTestCode/selfhost_runner_test.py \
+            $GITHUB_WORKSPACE/ch32v003-firmware
 
   build-all-windows:
     runs-on: windows-latest
